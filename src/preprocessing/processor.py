@@ -90,32 +90,36 @@ class ImageProcessor:
         Normalisasi gambar untuk input ke neural network dengan color correction
         
         Args:
-            image: Gambar input dalam format numpy array
+            image: Gambar input dalam format numpy array (BGR format dari OpenCV)
             
         Returns:
-            Gambar yang sudah dinormalisasi
+            Gambar yang sudah dinormalisasi dalam format RGB
         """
-        # Color correction
-        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        # Convert BGR to RGB (OpenCV loads as BGR, but model expects RGB)
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Color correction in RGB space
+        # Convert to LAB for better color normalization
+        lab = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2LAB)
         l, a, b = cv2.split(lab)
         
         # Normalize L channel
         l_norm = cv2.normalize(l, None, 0, 255, cv2.NORM_MINMAX)
         
-        # Apply CLAHE to L channel
-        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+        # Apply CLAHE to L channel for better contrast
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
         l_norm = clahe.apply(l_norm)
         
-        # Merge channels
+        # Merge channels and convert back to RGB
         corrected = cv2.merge([l_norm, a, b])
-        corrected = cv2.cvtColor(corrected, cv2.COLOR_LAB2BGR)
+        corrected = cv2.cvtColor(corrected, cv2.COLOR_LAB2RGB)
         
         # Konversi ke float32 dan normalisasi ke range [0, 1]
         normalized = corrected.astype(np.float32) / 255.0
         
-        # Standardisasi dengan mean dan std ImageNet
-        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        # Standardisasi dengan mean dan std ImageNet (RGB format)
+        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)  # RGB mean
+        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)   # RGB std
         
         normalized = (normalized - mean) / std
         return normalized.astype(np.float32)
