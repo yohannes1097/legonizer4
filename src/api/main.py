@@ -13,6 +13,7 @@ import shutil
 import tempfile
 from typing import List, Optional
 import torch
+import numpy as np
 from datetime import datetime
 
 from ..models.efficient_net import EfficientNetFeatureExtractor
@@ -72,6 +73,10 @@ def load_model_and_index():
             str(latest_model),
             map_location=device
         )
+        
+        # Ensure model is on the correct device
+        model = model.to(device)
+        model.eval()
         
         # Load search index
         index_files = list(models_dir.glob("*.index"))
@@ -152,10 +157,20 @@ async def identify_lego(
         # Prediksi dengan model
         predictions = []
         for img in processed_images:
-            # Convert ke tensor
-            img_tensor = torch.from_numpy(img).unsqueeze(0)
+            # Ensure numpy array is float32
+            img = img.astype(np.float32)
+            
+            # Convert numpy array (H, W, C) ke tensor (C, H, W)
+            img_tensor = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0)
+            
+            # Ensure tensor is float32
+            img_tensor = img_tensor.float()
+            
             if torch.cuda.is_available():
                 img_tensor = img_tensor.cuda()
+            
+            # Debug: print tensor type
+            logger.info(f"Tensor dtype: {img_tensor.dtype}, device: {img_tensor.device}")
             
             # Prediksi
             with torch.no_grad():

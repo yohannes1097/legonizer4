@@ -114,11 +114,11 @@ class ImageProcessor:
         normalized = corrected.astype(np.float32) / 255.0
         
         # Standardisasi dengan mean dan std ImageNet
-        mean = np.array([0.485, 0.456, 0.406])
-        std = np.array([0.229, 0.224, 0.225])
+        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
         
         normalized = (normalized - mean) / std
-        return normalized
+        return normalized.astype(np.float32)
 
     def process_single_image(self, 
                            image_path: str, 
