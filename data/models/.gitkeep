@@ -1,0 +1,2 @@
+# File ini memastikan direktori data/models tetap ada di git
+# Model yang sudah ditraining akan disimpan di sini

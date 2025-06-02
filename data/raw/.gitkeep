@@ -1,0 +1,10 @@
+# File ini memastikan direktori data/raw tetap ada di git
+# Letakkan foto-foto LEGO brick Anda di sini dengan struktur:
+# data/raw/
+# ├── model_id_1/
+# │   ├── foto1.jpg
+# │   ├── foto2.jpg
+# │   └── ...
+# ├── model_id_2/
+# │   ├── foto1.jpg
+# │   └── ...
