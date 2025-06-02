@@ -36,6 +36,10 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/processed_1/*
+!data/processed_1/.gitkeep
+data/processed_2/*
+!data/processed_2/.gitkeep
 data/models/*
 !data/models/.gitkeep
 

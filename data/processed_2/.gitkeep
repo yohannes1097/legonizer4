@@ -1,0 +1,2 @@
+# File ini memastikan direktori data/processed tetap ada di git
+# Hasil preprocessing gambar akan disimpan di sini

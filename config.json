@@ -16,11 +16,18 @@
     "augment": true
   },
   "preprocessing": {
-    "min_contour_area": 1000,
+    "min_contour_area": 800,
     "blur_kernel": 5,
     "target_size": [224, 224],
-    "save_visualization": false,
-    "max_workers": 4
+    "save_visualization": true,
+    "max_workers": 4,
+    "color_segmentation": true,
+    "shape_validation": true,
+    "shadow_removal": true,
+    "contrast_enhancement": true,
+    "adaptive_threshold": true,
+    "edge_detection": true,
+    "noise_reduction": true
   },
   "search": {
     "index_type": "L2",

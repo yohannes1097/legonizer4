@@ -46,15 +46,19 @@ class ImageProcessor:
         h, w = image.shape[:2]
         target_w, target_h = self.target_size
         
-        # Hitung scaling factor
+        # Hitung scaling factor dengan mempertahankan aspect ratio
         scale = min(target_w/w, target_h/h)
         
         # Hitung dimensi baru
         new_w = int(w * scale)
         new_h = int(h * scale)
         
-        # Resize gambar
-        resized = cv2.resize(image, (new_w, new_h))
+        # Resize gambar dengan interpolasi yang lebih baik
+        resized = cv2.resize(
+            image, 
+            (new_w, new_h), 
+            interpolation=cv2.INTER_LANCZOS4
+        )
         
         # Buat canvas kosong dengan ukuran target
         delta_w = target_w - new_w
@@ -62,19 +66,28 @@ class ImageProcessor:
         top, bottom = delta_h//2, delta_h-(delta_h//2)
         left, right = delta_w//2, delta_w-(delta_w//2)
         
-        # Padding dengan warna putih
+        # Padding dengan warna putih dan blending di edges
         padded = cv2.copyMakeBorder(
             resized,
             top, bottom, left, right,
-            cv2.BORDER_CONSTANT,
-            value=[255, 255, 255]
+            cv2.BORDER_REPLICATE
         )
         
+        # Smooth transition at borders
+        if top > 0:
+            padded[:top, :] = 255
+        if bottom > 0:
+            padded[-bottom:, :] = 255
+        if left > 0:
+            padded[:, :left] = 255
+        if right > 0:
+            padded[:, -right:] = 255
+            
         return padded
 
     def normalize_image(self, image: np.ndarray) -> np.ndarray:
         """
-        Normalisasi gambar untuk input ke neural network
+        Normalisasi gambar untuk input ke neural network dengan color correction
         
         Args:
             image: Gambar input dalam format numpy array
@@ -82,8 +95,23 @@ class ImageProcessor:
         Returns:
             Gambar yang sudah dinormalisasi
         """
+        # Color correction
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # Normalize L channel
+        l_norm = cv2.normalize(l, None, 0, 255, cv2.NORM_MINMAX)
+        
+        # Apply CLAHE to L channel
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+        l_norm = clahe.apply(l_norm)
+        
+        # Merge channels
+        corrected = cv2.merge([l_norm, a, b])
+        corrected = cv2.cvtColor(corrected, cv2.COLOR_LAB2BGR)
+        
         # Konversi ke float32 dan normalisasi ke range [0, 1]
-        normalized = image.astype(np.float32) / 255.0
+        normalized = corrected.astype(np.float32) / 255.0
         
         # Standardisasi dengan mean dan std ImageNet
         mean = np.array([0.485, 0.456, 0.406])
@@ -214,7 +242,7 @@ class ImageProcessor:
 
     def augment_image(self, image: np.ndarray) -> List[np.ndarray]:
         """
-        Melakukan augmentasi data pada gambar
+        Melakukan augmentasi data pada gambar dengan teknik yang lebih advanced
         
         Args:
             image: Gambar input dalam format numpy array
@@ -224,26 +252,69 @@ class ImageProcessor:
         """
         augmented = []
         
+        # Basic augmentations
         # Flip horizontal
         augmented.append(cv2.flip(image, 1))
         
-        # Rotasi
+        # Rotasi dengan border handling yang lebih baik
         for angle in [90, 180, 270]:
+            # Get rotation matrix
             matrix = cv2.getRotationMatrix2D(
                 (image.shape[1]/2, image.shape[0]/2),
                 angle,
                 1.0
             )
+            
+            # Calculate new bounds
+            cos = np.abs(matrix[0, 0])
+            sin = np.abs(matrix[0, 1])
+            new_w = int((image.shape[0] * sin) + (image.shape[1] * cos))
+            new_h = int((image.shape[0] * cos) + (image.shape[1] * sin))
+            
+            # Adjust translation
+            matrix[0, 2] += (new_w / 2) - image.shape[1]/2
+            matrix[1, 2] += (new_h / 2) - image.shape[0]/2
+            
+            # Apply rotation with border handling
             rotated = cv2.warpAffine(
                 image,
                 matrix,
-                (image.shape[1], image.shape[0])
+                (new_w, new_h),
+                borderMode=cv2.BORDER_REPLICATE
             )
+            
+            # Resize back to original size
+            rotated = cv2.resize(rotated, (image.shape[1], image.shape[0]))
             augmented.append(rotated)
         
-        # Brightness adjustment
+        # Advanced color augmentations
+        # Brightness
         bright = cv2.convertScaleAbs(image, alpha=1.2, beta=10)
         dark = cv2.convertScaleAbs(image, alpha=0.8, beta=-10)
         augmented.extend([bright, dark])
+        
+        # Contrast
+        contrast_high = cv2.convertScaleAbs(image, alpha=1.3, beta=0)
+        contrast_low = cv2.convertScaleAbs(image, alpha=0.7, beta=0)
+        augmented.extend([contrast_high, contrast_low])
+        
+        # Color temperature
+        # Warm
+        warm = image.copy()
+        warm[:,:,0] = cv2.convertScaleAbs(warm[:,:,0], alpha=0.9)  # Reduce blue
+        warm[:,:,2] = cv2.convertScaleAbs(warm[:,:,2], alpha=1.1)  # Increase red
+        augmented.append(warm)
+        
+        # Cool
+        cool = image.copy()
+        cool[:,:,0] = cv2.convertScaleAbs(cool[:,:,0], alpha=1.1)  # Increase blue
+        cool[:,:,2] = cv2.convertScaleAbs(cool[:,:,2], alpha=0.9)  # Reduce red
+        augmented.append(cool)
+        
+        # Add noise
+        noise = image.copy()
+        noise_mask = np.random.normal(0, 5, image.shape).astype(np.uint8)
+        noise = cv2.add(noise, noise_mask)
+        augmented.append(noise)
         
         return augmented
