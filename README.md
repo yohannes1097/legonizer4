@@ -179,7 +179,8 @@ Project ini dilisensikan di bawah MIT License - lihat file [LICENSE](LICENSE) un
 
 ## 👥 Tim
 
-- Nama Anda - *Initial work* - [GitHub](https://github.com/yohannes1097)
+- yohannes - [GitHub](https://github.com/yohannes1097)
+- stefanus - [GitHub](https://github.com/fatbear2010)
 
 ## 🙏 Acknowledgments
 
