@@ -246,13 +246,14 @@ class LegoDetector:
 
     def find_lego_contours(self, preprocessed_img: np.ndarray) -> list:
         """
-        Mencari kontur objek LEGO dari gambar yang sudah dipreprocess
+        Mencari kontur objek LEGO dari gambar yang sudah dipreprocess.
+        Mengembalikan hanya satu kontur yang paling dekat dengan pusat gambar.
         
         Args:
             preprocessed_img: Gambar yang sudah dipreprocess
             
         Returns:
-            List kontur yang terdeteksi sebagai objek LEGO
+            List berisi satu kontur yang terdeteksi sebagai objek LEGO
         """
         # Cari semua kontur
         contours, _ = cv2.findContours(
@@ -261,24 +262,29 @@ class LegoDetector:
             cv2.CHAIN_APPROX_SIMPLE
         )
         
-        # Filter kontur berdasarkan area minimum
-        filtered_contours = []
+        # Filter kontur berdasarkan area minimum dan validasi bentuk
+        valid_contours = []
+        image_center = (preprocessed_img.shape[1] // 2, preprocessed_img.shape[0] // 2)
+        
         for cnt in contours:
             area = cv2.contourArea(cnt)
-            if area > self.min_contour_area:
-                filtered_contours.append(cnt)
+            if area > self.min_contour_area and self.validate_shape(cnt):
+                # Hitung jarak ke pusat
+                M = cv2.moments(cnt)
+                if M["m00"] != 0:
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
+                    dist_to_center = np.sqrt((cx - image_center[0])**2 + (cy - image_center[1])**2)
+                    valid_contours.append((dist_to_center, cnt))
         
-        # Gabungkan kontur yang berdekatan
-        merged_contours = self.merge_nearby_contours(filtered_contours)
+        if not valid_contours:
+            logger.info("Tidak ditemukan objek LEGO yang valid")
+            return []
         
-        # Validasi bentuk setelah penggabungan
-        lego_contours = []
-        for cnt in merged_contours:
-            if self.validate_shape(cnt):
-                lego_contours.append(cnt)
-        
-        logger.info(f"Ditemukan {len(lego_contours)} objek LEGO tervalidasi")
-        return lego_contours
+        # Pilih kontur yang paling dekat dengan pusat
+        center_contour = min(valid_contours, key=lambda x: x[0])[1]
+        logger.info("Ditemukan 1 objek LEGO tervalidasi (terdekat dengan pusat)")
+        return [center_contour]
 
     def extract_lego_object(self, 
                           image: np.ndarray, 
