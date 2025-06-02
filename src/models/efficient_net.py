@@ -38,6 +38,9 @@ class EfficientNetFeatureExtractor(nn.Module):
             'efficientnet-b4'
         ) if pretrained else EfficientNet.from_name('efficientnet-b4')
         
+        # Store original feature dimension before replacing classifier
+        self.feature_dim = self.efficient_net._fc.in_features
+        
         # Freeze beberapa layer awal
         if pretrained:
             for param in list(self.efficient_net.parameters())[:-20]:
@@ -48,7 +51,7 @@ class EfficientNetFeatureExtractor(nn.Module):
         
         # Feature extraction dan klasifikasi
         self.classifier = nn.Sequential(
-            nn.Linear(feature_dim, 512),
+            nn.Linear(self.feature_dim, 512),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(512, 256),
@@ -105,7 +108,7 @@ class EfficientNetFeatureExtractor(nn.Module):
         """
         torch.save({
             'model_state_dict': self.state_dict(),
-            'feature_dim': self.efficient_net._fc.in_features,
+            'feature_dim': self.feature_dim,
             'num_classes': self.classifier[-1].out_features
         }, path)
         logger.info(f"Model disimpan ke: {path}")
@@ -142,4 +145,4 @@ class EfficientNetFeatureExtractor(nn.Module):
         Returns:
             Dimensi feature vector
         """
-        return self.efficient_net._fc.in_features
+        return self.feature_dim
