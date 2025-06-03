@@ -157,22 +157,6 @@ Reports dapat diakses melalui:
 1. API endpoint `/accuracy`
 2. HTML reports di `data/metrics/reports/`
 
-## 🤝 Kontribusi
-
-1. Fork repository
-2. Buat feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push ke branch (`git push origin feature/AmazingFeature`)
-5. Buat Pull Request
-
-## 📝 TODO
-
-- [ ] Implementasi data augmentation tambahan
-- [ ] Integrasi dengan MLflow untuk experiment tracking
-- [ ] Support untuk model arsitektur lain
-- [ ] Web interface untuk visualisasi
-- [ ] Optimasi performa FAISS index
-
 ## 📄 Lisensi
 
 Project ini dilisensikan di bawah MIT License - lihat file [LICENSE](LICENSE) untuk detail.
